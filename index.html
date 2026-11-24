@@ -189,6 +189,147 @@ function openProfile(key){
  $("profileModal").classList.remove("hidden");
 }
 async function openPublicReport(studentId){
+ const entry=Object.entries(publicStudents||{}).find(([key,st])=>key===studentId||String(st.id||"").trim().toUpperCase()===String(studentId).trim().toUpperCase()||String(st.studentId||"").trim().toUpperCase()===String(studentId).trim().toUpperCase());
+ if(entry)studentId=entry[0];
+ const box=$("publicReportContent");box.textContent="റിപ്പോർട്ട് ലോഡ് ചെയ്യുന്നു...";$("publicReportTitle").textContent=(publicStudents[studentId]?.name||studentId)+" — Report Card";$("publicReportModal").classList.remove("hidden");
+ try{const snap=await db.ref("reportCards/"+studentId).once("value");const data=snap.val();box.replaceChildren();if(!data||!Array.isArray(data.records)||!data.records.length){box.textContent="ഈ വിദ്യാർത്ഥിയുടെ റിപ്പോർട്ട് കാർഡ് ഇതുവരെ പ്രസിദ്ധീകരിച്ചിട്ടില്ല.";return}
+ const info=document.createElement("p");info.textContent="Batch: "+safe(data.batch)+" | Class: "+safe(data.schoolClass)+" | Published: "+safe(data.publishedDate);box.append(info);
+ const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;margin-top:12px";const head=document.createElement("tr");["Exam","Date","Subject","Marks","Percentage"].forEach(t=>{const th=document.createElement("th");th.textContent=t;th.style.cssText="border:1px solid #cbd5e1;padding:8px;background:#eaf1f8";head.append(th)});table.append(head);
+ data.records.forEach(r=>{const tr=document.createElement("tr");[r.examName,r.date,r.subjectName, r.marksObtained+" / "+r.maxMarks,r.percentage+"%"].forEach(v=>{const td=document.createElement("td");td.textContent=safe(v);td.style.cssText="border:1px solid #cbd5e1;padding:8px";tr.append(td)});table.append(tr)});box.append(table);
+ }catch(e){box.textContent="റിപ്പോർട്ട് ലഭിച്ചില്ല: "+e.message}
+}
+$("reportCardsBtn").onclick=()=>{
+ const entries=Object.entries(publicStudents||{});
+ if(!entries.length){alert("വിദ്യാർത്ഥികളുടെ വിവരങ്ങൾ ഇതുവരെ ലോഡ് ചെയ്തിട്ടില്ല. പേജ് Refresh ചെയ്യുക.");return}
+ const choices=entries.map(([key,st])=>`${st.name||key} — ${key}`).join("\n");
+ const entered=prompt("Report Card കാണേണ്ട വിദ്യാർത്ഥിയുടെ ID നൽകുക:\n\n"+choices);
+ if(!entered)return;
+ const wanted=entered.trim().toUpperCase();
+ const match=entries.find(([key,st])=>
+   String(key).trim().toUpperCase()===wanted ||
+   String(st.id||"").trim().toUpperCase()===wanted ||
+   String(st.studentId||"").trim().toUpperCase()===wanted
+ );
+ if(match){openPublicReport(match[0]);}
+ else{alert("ഈ ID കണ്ടെത്തിയില്ല. ലഭ്യമായ ID-കൾ: "+entries.map(([key])=>key).join(", "));}
+};
+$("closePublicReport").onclick=()=>$("publicReportModal").classList.add("hidden");
+$("printPublicReport").onclick=()=>{const w=window.open("","_blank");if(!w)return;w.document.write("<html><head><meta charset='utf-8'><title>Student Report Card</title></head><body>"+$("publicReportTitle").outerHTML+$("publicReportContent").innerHTML+"<script>window.onload=()=>window.print()<\/script></body></html>");w.document.close()};
+
+$("teacherBtn").onclick=()=>$("loginModal").classList.remove("hidden");
+$("closeLogin").onclick=()=>$("loginModal").classList.add("hidden");
+$("loginBtn").onclick=async()=>{
+ status("loginStatus","");
+ try{
+  const result=await auth.signInWithEmailAndPassword($("email").value.trim(),$("password").value);
+  if(result.user.email!==TEACHER_EMAIL){await auth.signOut();throw new Error("ഈ അക്കൗണ്ടിന് Teacher access അനുവദിച്ചിട്ടില്ല.")}
+  $("loginModal").classList.add("hidden");$("password").value="";
+ }catch(e){status("loginStatus","Login failed: "+e.message)}
+};
+$("logoutBtn").onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async user=>{
+ currentUser=user;
+ if(user && user.email!==TEACHER_EMAIL){await auth.signOut();return}
+ refreshTeacherUI();
+ if(isTeacher()){await loadPrivate();render()}else{privateStudents={};render()}
+});
+$("closeProfile").onclick=()=>$("profileModal").classList.add("hidden");
+$("profileModal").onclick=e=>{if(e.target===$("profileModal"))$("profileModal").classList.add("hidden")};
+$("editBtn").onclick=()=>{if(isTeacher())openEditor(activeKey,publicStudents[activeKey]||{},privateStudents[activeKey]||{})};
+$("addBtn").onclick=()=>{if(isTeacher())openEditor(null,{}, {})};
+$("closeEdit").onclick=()=>$("editModal").classList.add("hidden");
+function openEditor(key,s={},p={}){
+ if(!isTeacher())return;
+ isEditingNew=!key;activeKey=key;
+ $("editTitle").textContent=key?"Edit Student":"Add Student";
+ $("sid").value=key||"";$("sid").disabled=!!key;
+ $("sname").value=s.name||"";$("photo").value=s.photo||"";$("batch").value=s.batch||"";
+ $("schoolClass").value=s.schoolClass||"";$("marks").value=s.examMarks||"";
+ $("present").value=s.attendance?.present??0;$("absent").value=s.attendance?.absent??0;$("totalDays").value=s.attendance?.totalDays??0;
+ $("progreeportModal" class="modal hidden"><div class="modalbox"><div class="toprow"><h2 id="publicReportTitle">Student Report Card</h2><div class="btnrow"><button id="printPublicReport" class="btn">Print / Save PDF</button><button id="closePublicReport" class="btn secondary">Close</button></div></div><div id="publicReportContent"></div></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig={
+ apiKey:"AIzaSyAjYDcSXRJJ8Ik0MFxo3xst83-c_iJx9jo",
+ authDomain:"student-portal-15.firebaseapp.com",
+ databaseURL:"https://student-portal-15-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId:"student-portal-15",
+ storageBucket:"student-portal-15.firebasestorage.app",
+ messagingSenderId:"575545424549",
+ appId:"1:575545424549:web:d9d38d882c0e078e112b4c",
+ measurementId:"G-5B68SWW1NC"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.database();
+const TEACHER_EMAIL="suhailpulpatta473@gmail.com";
+const $=id=>document.getElementById(id);
+let publicStudents={}, privateStudents={}, currentUser=null, activeKey=null, isEditingNew=false;
+
+function status(id,msg){$(id).textContent=msg}
+function safe(v){return v===undefined||v===null?"":String(v)}
+function showNotice(msg){$("notice").textContent=msg;$("notice").classList.remove("hidden")}
+function hideNotice(){$("notice").classList.add("hidden")}
+function isTeacher(){return !!currentUser && currentUser.email===TEACHER_EMAIL}
+function refreshTeacherUI(){
+ $("teacherBtn").classList.toggle("hidden",!!currentUser);
+ $("logoutBtn").classList.toggle("hidden",!currentUser);
+ $("addBtn").classList.toggle("hidden",!isTeacher());
+ $("attendanceBtn").classList.toggle("hidden",!isTeacher());
+ $("academicsBtn").classList.toggle("hidden",!isTeacher());
+}
+function loadPublic(){
+ status("appStatus",""); 
+ db.ref("publicStudents").once("value").then(s=>{
+   publicStudents=s.val()||{};
+   render();
+   if(!Object.keys(publicStudents).length) showNotice("Public student data ഇതുവരെ ചേർത്തിട്ടില്ല. Teacher, ആദ്യം പുതിയ Public–Private JSON import ചെയ്യണം.");
+   else hideNotice();
+ }).catch(e=>{status("appStatus","Student വിവരങ്ങൾ ലഭിച്ചില്ല: "+e.message);showNotice("Database access പരിശോധിക്കുക. Firebase Rules ശരിയാക്കിയിട്ടുണ്ടോ എന്ന് ഉറപ്പാക്കുക.")});
+}
+function loadPrivate(){
+ if(!isTeacher()){privateStudents={};return Promise.resolve()}
+ return db.ref("privateStudents").once("value").then(s=>{privateStudents=s.val()||{}}).catch(e=>{privateStudents={};status("appStatus","Private details load failed: "+e.message)});
+}
+function avatar(){const a=document.createElement("div");a.className="avatar";a.textContent="👤";return a}
+function render(){
+ const grid=$("studentGrid");grid.replaceChildren();
+ const q=$("search").value.trim().toLowerCase();
+ const rows=Object.entries(publicStudents).filter(([k,s])=>(safe(s.name)||k).toLowerCase().includes(q));
+ $("count").textContent=rows.length+" students";
+ rows.forEach(([key,s])=>{
+   const card=document.createElement("article");card.className="card student";card.onclick=()=>openProfile(key);
+   if(s.photo){const im=document.createElement("img");im.src=s.photo;im.alt="Student photo";im.onerror=()=>im.replaceWith(avatar());card.append(im)}else card.append(avatar());
+   const h=document.createElement("h3");h.textContent=s.name||key;
+   const p=document.createElement("p");p.className="muted";p.textContent=[s.batch,s.schoolClass].filter(Boolean).join(" • ");
+   card.append(h,p);const reportBtn=document.createElement("button");reportBtn.className="btn secondary";reportBtn.textContent="📄 Report Card";reportBtn.onclick=(ev)=>{ev.stopPropagation();openPublicReport(key)};card.append(reportBtn);grid.append(card);
+ });
+}
+$("search").oninput=render;
+function addDetail(container,label,value){
+ const d=document.createElement("div");d.className="detail";
+ const b=document.createElement("b");b.textContent=label;
+ const span=document.createElement("span");span.textContent=safe(value)||"—";
+ d.append(b,span);container.append(d);
+}
+function openProfile(key){
+ activeKey=key;const s=publicStudents[key]||{}, priv=isTeacher()?(privateStudents[key]||{}):{};
+ $("profileTitle").textContent=s.name||key;
+ const c=$("profileContent");c.replaceChildren();
+ addDetail(c,"Student ID",key);addDetail(c,"Batch",s.batch);addDetail(c,"School Class",s.schoolClass);
+ addDetail(c,"Exam Marks",s.examMarks);addDetail(c,"Study Progress",s.studyProgress);addDetail(c,"Achievements",s.achievements);
+ const a=s.attendance||{};addDetail(c,"Present",a.present??0);addDetail(c,"Absent",a.absent??0);addDetail(c,"Total Days",a.totalDays??0);
+ if(isTeacher()){
+   addDetail(c,"Date of Birth",priv.dateOfBirth);addDetail(c,"Guardian Details",priv.guardianDetails);
+   addDetail(c,"Phone Number",priv.phone);addDetail(c,"Address",priv.address);addDetail(c,"Blood Group",priv.bloodGroup);
+   addDetail(c,"Private Teacher Remark",priv.teacherRemark);
+ }
+ $("editBtn").classList.toggle("hidden",!isTeacher());
+ $("profileModal").classList.remove("hidden");
+}
+async function openPublicReport(studentId){
  const box=$("publicReportContent");box.textContent="റിപ്പോർട്ട് ലോഡ് ചെയ്യുന്നു...";$("publicReportTitle").textContent=(publicStudents[studentId]?.name||studentId)+" — Report Card";$("publicReportModal").classList.remove("hidden");
  try{const snap=await db.ref("reportCards/"+studentId).once("value");const data=snap.val();box.replaceChildren();if(!data||!Array.isArray(data.records)||!data.records.length){box.textContent="ഈ വിദ്യാർത്ഥിയുടെ റിപ്പോർട്ട് കാർഡ് ഇതുവരെ പ്രസിദ്ധീകരിച്ചിട്ടില്ല.";return}
  const info=document.createElement("p");info.textContent="Batch: "+safe(data.batch)+" | Class: "+safe(data.schoolClass)+" | Published: "+safe(data.publishedDate);box.append(info);
