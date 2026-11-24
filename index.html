@@ -263,6 +263,160 @@ function updateAttendanceSummary(){const rows=attendanceRows();const c={present:
 $("attendanceBtn").onclick=async()=>{if(!isTeacher())return;$("attendanceDate").value=localDateString();$("reportMonth").value=localDateString().slice(0,7);$("monthlyResult").classList.add("hidden");$("attendanceModal").classList.remove("hidden");await loadAttendanceForDate()};
 $("closeAttendance").onclick=()=>$("attendanceModal").classList.add("hidden");
 $("attendanceModal").onclick=e=>{if(e.target===$("attendanceModal"))$("attendanceModal").classList.add("hidden")};
+asyn,
+ authDomain:"student-portal-15.firebaseapp.com",
+ databaseURL:"https://student-portal-15-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId:"student-portal-15",
+ storageBucket:"student-portal-15.firebasestorage.app",
+ messagingSenderId:"575545424549",
+ appId:"1:575545424549:web:d9d38d882c0e078e112b4c",
+ measurementId:"G-5B68SWW1NC"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.database();
+const TEACHER_EMAIL="suhailpulpatta473@gmail.com";
+const $=id=>document.getElementById(id);
+let publicStudents={}, privateStudents={}, currentUser=null, activeKey=null, isEditingNew=false;
+
+function status(id,msg){$(id).textContent=msg}
+function safe(v){return v===undefined||v===null?"":String(v)}
+function showNotice(msg){$("notice").textContent=msg;$("notice").classList.remove("hidden")}
+function hideNotice(){$("notice").classList.add("hidden")}
+function isTeacher(){return !!currentUser && currentUser.email===TEACHER_EMAIL}
+function refreshTeacherUI(){
+ $("teacherBtn").classList.toggle("hidden",!!currentUser);
+ $("logoutBtn").classList.toggle("hidden",!currentUser);
+ $("addBtn").classList.toggle("hidden",!isTeacher());
+ $("attendanceBtn").classList.toggle("hidden",!isTeacher());
+ $("academicsBtn").classList.toggle("hidden",!isTeacher());
+}
+function loadPublic(){
+ status("appStatus",""); 
+ db.ref("publicStudents").once("value").then(s=>{
+   publicStudents=s.val()||{};
+   render();
+   if(!Object.keys(publicStudents).length) showNotice("Public student data ഇതുവരെ ചേർത്തിട്ടില്ല. Teacher, ആദ്യം പുതിയ Public–Private JSON import ചെയ്യണം.");
+   else hideNotice();
+ }).catch(e=>{status("appStatus","Student വിവരങ്ങൾ ലഭിച്ചില്ല: "+e.message);showNotice("Database access പരിശോധിക്കുക. Firebase Rules ശരിയാക്കിയിട്ടുണ്ടോ എന്ന് ഉറപ്പാക്കുക.")});
+}
+function loadPrivate(){
+ if(!isTeacher()){privateStudents={};return Promise.resolve()}
+ return db.ref("privateStudents").once("value").then(s=>{privateStudents=s.val()||{}}).catch(e=>{privateStudents={};status("appStatus","Private details load failed: "+e.message)});
+}
+function avatar(){const a=document.createElement("div");a.className="avatar";a.textContent="👤";return a}
+function render(){
+ const grid=$("studentGrid");grid.replaceChildren();
+ const q=$("search").value.trim().toLowerCase();
+ const rows=Object.entries(publicStudents).filter(([k,s])=>(safe(s.name)||k).toLowerCase().includes(q));
+ $("count").textContent=rows.length+" students";
+ rows.forEach(([key,s])=>{
+   const card=document.createElement("article");card.className="card student";card.onclick=()=>openProfile(key);
+   if(s.photo){const im=document.createElement("img");im.src=s.photo;im.alt="Student photo";im.onerror=()=>im.replaceWith(avatar());card.append(im)}else card.append(avatar());
+   const h=document.createElement("h3");h.textContent=s.name||key;
+   const p=document.createElement("p");p.className="muted";p.textContent=[s.batch,s.schoolClass].filter(Boolean).join(" • ");
+   card.append(h,p);grid.append(card);
+ });
+}
+$("search").oninput=render;
+function addDetail(container,label,value){
+ const d=document.createElement("div");d.className="detail";
+ const b=document.createElement("b");b.textContent=label;
+ const span=document.createElement("span");span.textContent=safe(value)||"—";
+ d.append(b,span);container.append(d);
+}
+function openProfile(key){
+ activeKey=key;const s=publicStudents[key]||{}, priv=isTeacher()?(privateStudents[key]||{}):{};
+ $("profileTitle").textContent=s.name||key;
+ const c=$("profileContent");c.replaceChildren();
+ addDetail(c,"Student ID",key);addDetail(c,"Batch",s.batch);addDetail(c,"School Class",s.schoolClass);
+ addDetail(c,"Exam Marks",s.examMarks);addDetail(c,"Study Progress",s.studyProgress);addDetail(c,"Achievements",s.achievements);
+ const a=s.attendance||{};addDetail(c,"Present",a.present??0);addDetail(c,"Absent",a.absent??0);addDetail(c,"Total Days",a.totalDays??0);
+ if(isTeacher()){
+   addDetail(c,"Date of Birth",priv.dateOfBirth);addDetail(c,"Guardian Details",priv.guardianDetails);
+   addDetail(c,"Phone Number",priv.phone);addDetail(c,"Address",priv.address);addDetail(c,"Blood Group",priv.bloodGroup);
+   addDetail(c,"Private Teacher Remark",priv.teacherRemark);
+ }
+ $("editBtn").classList.toggle("hidden",!isTeacher());
+ $("profileModal").classList.remove("hidden");
+}
+$("teacherBtn").onclick=()=>$("loginModal").classList.remove("hidden");
+$("closeLogin").onclick=()=>$("loginModal").classList.add("hidden");
+$("loginBtn").onclick=async()=>{
+ status("loginStatus","");
+ try{
+  const result=await auth.signInWithEmailAndPassword($("email").value.trim(),$("password").value);
+  if(result.user.email!==TEACHER_EMAIL){await auth.signOut();throw new Error("ഈ അക്കൗണ്ടിന് Teacher access അനുവദിച്ചിട്ടില്ല.")}
+  $("loginModal").classList.add("hidden");$("password").value="";
+ }catch(e){status("loginStatus","Login failed: "+e.message)}
+};
+$("logoutBtn").onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async user=>{
+ currentUser=user;
+ if(user && user.email!==TEACHER_EMAIL){await auth.signOut();return}
+ refreshTeacherUI();
+ if(isTeacher()){await loadPrivate();render()}else{privateStudents={};render()}
+});
+$("closeProfile").onclick=()=>$("profileModal").classList.add("hidden");
+$("profileModal").onclick=e=>{if(e.target===$("profileModal"))$("profileModal").classList.add("hidden")};
+$("editBtn").onclick=()=>{if(isTeacher())openEditor(activeKey,publicStudents[activeKey]||{},privateStudents[activeKey]||{})};
+$("addBtn").onclick=()=>{if(isTeacher())openEditor(null,{}, {})};
+$("closeEdit").onclick=()=>$("editModal").classList.add("hidden");
+function openEditor(key,s={},p={}){
+ if(!isTeacher())return;
+ isEditingNew=!key;activeKey=key;
+ $("editTitle").textContent=key?"Edit Student":"Add Student";
+ $("sid").value=key||"";$("sid").disabled=!!key;
+ $("sname").value=s.name||"";$("photo").value=s.photo||"";$("batch").value=s.batch||"";
+ $("schoolClass").value=s.schoolClass||"";$("marks").value=s.examMarks||"";
+ $("present").value=s.attendance?.present??0;$("absent").value=s.attendance?.absent??0;$("totalDays").value=s.attendance?.totalDays??0;
+ $("progress").value=s.studyProgress||"";$("achievements").value=s.achievements||"";
+ $("dob").value=p.dateOfBirth||"";$("guardian").value=p.guardianDetails||"";$("phone").value=p.phone||"";
+ $("address").value=p.address||"";$("bloodGroup").value=p.bloodGroup||"";$("remark").value=p.teacherRemark||"";
+ $("deleteBtn").classList.toggle("hidden",!key);status("formStatus","");
+ $("profileModal").classList.add("hidden");$("editModal").classList.remove("hidden");
+}
+$("studentForm").onsubmit=async e=>{
+ e.preventDefault();if(!isTeacher()){status("formStatus","Teacher login ആവശ്യമാണ്.");return}
+ const key=$("sid").value.trim();if(!key){status("formStatus","Student ID ആവശ്യമാണ്.");return}
+ const pub={
+  id:key,name:$("sname").value.trim(),photo:$("photo").value.trim(),batch:$("batch").value.trim(),
+  schoolClass:$("schoolClass").value.trim(),examMarks:$("marks").value.trim(),
+  attendance:{present:Number($("present").value||0),absent:Number($("absent").value||0),totalDays:Number($("totalDays").value||0)},
+  studyProgress:$("progress").value.trim(),achievements:$("achievements").value.trim()
+ };
+ const priv={dateOfBirth:$("dob").value,guardianDetails:$("guardian").value.trim(),phone:$("phone").value.trim(),
+  address:$("address").value.trim(),bloodGroup:$("bloodGroup").value.trim(),teacherRemark:$("remark").value.trim()};
+ try{
+  await db.ref().update({["publicStudents/"+key]:pub,["privateStudents/"+key]:priv});
+  publicStudents[key]=pub;privateStudents[key]=priv;render();$("editModal").classList.add("hidden");
+  if(!isEditingNew)openProfile(key);
+ }catch(err){status("formStatus","Save failed: "+err.message)}
+};
+$("deleteBtn").onclick=async()=>{
+ if(!isTeacher()||!activeKey||!confirm("ഈ വിദ്യാർത്ഥിയെ Delete ചെയ്യണോ?"))return;
+ try{const k=activeKey;await db.ref().update({["publicStudents/"+k]:null,["privateStudents/"+k]:null});delete publicStudents[k];delete privateStudents[k];render();$("editModal").classList.add("hidden")}
+ catch(e){status("formStatus","Delete failed: "+e.message)}
+};
+
+// Daily attendance is stored separately at /attendance/YYYY-MM-DD/STUDENT_ID.
+function localDateString(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function attendanceRows(){return [...document.querySelectorAll("[data-attendance-id]")]}
+function renderAttendance(records={}){
+ const list=$("attendanceList");list.replaceChildren();
+ const entries=Object.entries(publicStudents).sort((a,b)=>(a[1].name||a[0]).localeCompare(b[1].name||b[0]));
+ if(!entries.length){list.textContent="വിദ്യാർത്ഥികൾ ലഭ്യമല്ല.";return}
+ entries.forEach(([id,student])=>{
+  const row=document.createElement("div");row.className="att-row";
+  const name=document.createElement("div");name.textContent=(student.name||id)+" ("+id+")";
+  const select=document.createElement("select");select.dataset.attendanceId=id;
+  [["present","Present"],["absent","Absent"],["leave","Leave"]].forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;select.append(o)});
+  select.value=records[id]?.status||"present";row.append(name,select);list.append(row);
+ });updateAttendanceSummary();
+}
+function updateAttendanceSummary(){const rows=attendanceRows();const c={present:0,absent:0,leave:0};rows.forEach(x=>c[x.value]++);$("attendanceSummary").textContent=`ആകെ ${rows.length} | Present ${c.present} | Absent ${c.absent} | Leave ${c.leave}`;}
+$("attendanceBtn").onclick=async()=>{if(!isTeacher())return;$("attendanceDate").value=localDateString();$("reportMonth").value=localDateString().slice(0,7);$("monthlyResult").classList.add("hidden");$("attendanceModal").classList.remove("hidden");await loadAttendanceForDate()};
+$("closeAttendance").onclick=()=>$("attendanceModal").classList.add("hidden");
+$("attendanceModal").onclick=e=>{if(e.target===$("attendanceModal"))$("attendanceModal").classList.add("hidden")};
 async function loadAttendanceForDate(){if(!isTeacher())return;const date=$("attendanceDate").value;if(!date)return;status("attendanceStatus","Loading...");try{const snap=await db.ref("attendance/"+date).once("value");renderAttendance(snap.val()||{});status("attendanceStatus","")}catch(e){status("attendanceStatus","ഹാജർ ലഭിച്ചില്ല: "+e.message)}}
 $("loadAttendance").onclick=loadAttendanceForDate;
 $("attendanceList").onchange=e=>{if(e.target.matches("[data-attendance-id]"))updateAttendanceSummary()};
