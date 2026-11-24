@@ -25,7 +25,7 @@ input,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10
 <main class="wrap">
   <section class="panel toprow">
     <div><h2 style="margin:0">വിദ്യാർത്ഥികൾ</h2><span id="count" class="muted">Loading...</span></div>
-    <div class="btnrow"><button id="teacherBtn" class="btn">Teacher Login</button><button id="logoutBtn" class="btn secondary hidden">Logout</button><button id="attendanceBtn" class="btn hidden">📅 Attendance</button><button id="addBtn" class="btn hidden">+ Student ചേർക്കുക</button></div>
+    <div class="btnrow"><button id="teacherBtn" class="btn">Teacher Login</button><button id="logoutBtn" class="btn secondary hidden">Logout</button><button id="attendanceBtn" class="btn hidden">📅 Attendance</button><button id="academicsBtn" class="btn hidden">📚 Subjects & Marks</button><button id="addBtn" class="btn hidden">+ Student ചേർക്കുക</button></div>
   </section>
   <section class="panel"><input id="search" placeholder="വിദ്യാർത്ഥിയുടെ പേര് തിരയുക..."></section>
   <div id="notice" class="notice hidden"></div>
@@ -86,6 +86,24 @@ input,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10
   <div id="monthlyResult" class="att-summary hidden"></div>
 </div></div>
 
+<div id="academicsModal" class="modal hidden"><div class="modalbox">
+  <div class="toprow"><h2>📚 Subject Management & Exam Marks</h2><button id="closeAcademics" class="btn secondary">Close</button></div>
+  <div class="notice">ഓരോ വിദ്യാർത്ഥിക്കും വ്യത്യസ്ത വിഷയങ്ങൾ നൽകാം. വിഷയങ്ങളും മാർക്കും Teacher-ന് മാത്രം കാണാം.</div>
+  <h3>1. പുതിയ വിഷയം ചേർക്കുക</h3>
+  <div class="two"><div class="field"><label for="newSubjectName">വിഷയത്തിന്റെ പേര്</label><input id="newSubjectName" placeholder="ഉദാ: ഫിഖ്ഹ്"></div><div class="field" style="align-self:end"><button id="addSubjectBtn" class="btn">വിഷയം ചേർക്കുക</button></div></div>
+  <div id="subjectCatalog" class="details"></div>
+  <hr>
+  <h3>2. വിദ്യാർത്ഥിക്ക് വിഷയങ്ങൾ നൽകുക</h3>
+  <div class="field"><label for="assignStudent">വിദ്യാർത്ഥി</label><select id="assignStudent" class="att-date" style="width:100%"></select></div>
+  <div id="subjectChoices" class="details"></div>
+  <button id="saveAssignments" class="btn">വിഷയങ്ങൾ Save ചെയ്യുക</button>
+  <hr>
+  <h3>3. പരീക്ഷാ മാർക്ക് രേഖപ്പെടുത്തുക</h3>
+  <div class="two"><div class="field"><label for="marksStudent">വിദ്യാർത്ഥി</label><select id="marksStudent" class="att-date" style="width:100%"></select></div><div class="field"><label for="examName">പരീക്ഷയുടെ പേര്</label><input id="examName" placeholder="ഉദാ: Monthly Test"></div><div class="field"><label for="examDate">തീയതി</label><input id="examDate" type="date" class="att-date"></div><div class="field"><label for="subjectForMarks">വിഷയം</label><select id="subjectForMarks" class="att-date" style="width:100%"></select></div><div class="field"><label for="marksObtained">ലഭിച്ച മാർക്ക്</label><input id="marksObtained" type="number" min="0" step="0.5"></div><div class="field"><label for="maxMarks">ആകെ മാർക്ക്</label><input id="maxMarks" type="number" min="1" step="0.5" value="100"></div></div>
+  <button id="saveMarks" class="btn">മാർക്ക് Save ചെയ്യുക</button>
+  <div id="academicStatus" class="status"></div>
+</div></div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -116,6 +134,7 @@ function refreshTeacherUI(){
  $("logoutBtn").classList.toggle("hidden",!currentUser);
  $("addBtn").classList.toggle("hidden",!isTeacher());
  $("attendanceBtn").classList.toggle("hidden",!isTeacher());
+ $("academicsBtn").classList.toggle("hidden",!isTeacher());
 }
 function loadPublic(){
  status("appStatus",""); 
@@ -275,6 +294,20 @@ $("monthlyReport").onclick=async()=>{
  }catch(e){status("attendanceStatus","Report ലഭിച്ചില്ല: "+e.message)}
 };
 
+// Academic data is stored in teacher-only paths: /subjects, /studentSubjects, /examResults.
+let subjectCatalog={}, studentSubjects={};
+function studentOptions(select){select.replaceChildren();Object.entries(publicStudents).sort((a,b)=>(a[1].name||a[0]).localeCompare(b[1].name||b[0])).forEach(([id,st])=>{const o=document.createElement("option");o.value=id;o.textContent=(st.name||id)+" ("+id+")";select.append(o)})}
+function renderSubjectCatalog(){const box=$("subjectCatalog");box.replaceChildren();const entries=Object.entries(subjectCatalog).sort((a,b)=>a[1].localeCompare(b[1]));if(!entries.length){box.textContent="വിഷയങ്ങൾ ചേർത്തിട്ടില്ല.";return}entries.forEach(([id,name])=>{const d=document.createElement("div");d.className="detail";d.textContent=name;box.append(d)})}
+function renderSubjectChoices(){const box=$("subjectChoices");box.replaceChildren();const studentId=$("assignStudent").value;const assigned=studentSubjects[studentId]||{};const entries=Object.entries(subjectCatalog).sort((a,b)=>a[1].localeCompare(b[1]));if(!entries.length){box.textContent="ആദ്യം വിഷയങ്ങൾ ചേർക്കുക.";return}entries.forEach(([id,name])=>{const label=document.createElement("label");label.className="detail";label.style.display="flex";label.style.gap="8px";label.style.alignItems="center";const cb=document.createElement("input");cb.type="checkbox";cb.value=id;cb.checked=!!assigned[id];cb.style.width="auto";label.append(cb,document.createTextNode(name));box.append(label)})}
+function renderMarksSubjects(){const id=$("marksStudent").value;const select=$("subjectForMarks");select.replaceChildren();Object.keys(studentSubjects[id]||{}).filter(k=>subjectCatalog[k]).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=subjectCatalog[k];select.append(o)});if(!select.options.length){const o=document.createElement("option");o.value="";o.textContent="ഈ വിദ്യാർത്ഥിക്ക് വിഷയങ്ങൾ നൽകിയിട്ടില്ല";select.append(o)}}
+async function openAcademics(){if(!isTeacher())return;status("academicStatus","Loading...");$("academicsModal").classList.remove("hidden");try{const [a,b]=await Promise.all([db.ref("subjects").once("value"),db.ref("studentSubjects").once("value")]);subjectCatalog=a.val()||{};studentSubjects=b.val()||{};renderSubjectCatalog();studentOptions($("assignStudent"));studentOptions($("marksStudent"));renderSubjectChoices();renderMarksSubjects();$("examDate").value=localDateString();status("academicStatus","")}catch(e){status("academicStatus","വിവരങ്ങൾ ലഭിച്ചില്ല: "+e.message)}}
+$("academicsBtn").onclick=openAcademics;
+$("closeAcademics").onclick=()=>$("academicsModal").classList.add("hidden");
+$("assignStudent").onchange=renderSubjectChoices;
+$("marksStudent").onchange=renderMarksSubjects;
+$("addSubjectBtn").onclick=async()=>{if(!isTeacher())return;const name=$("newSubjectName").value.trim();if(!name){status("academicStatus","വിഷയത്തിന്റെ പേര് നൽകുക.");return}const key="SUB_"+name.toLowerCase().replace(/[^a-z0-9\u0D00-\u0D7F]+/g,"_").replace(/^_+|_+$/g,"").slice(0,35)+"_"+Date.now().toString(36);try{await db.ref("subjects/"+key).set(name);subjectCatalog[key]=name;$("newSubjectName").value="";renderSubjectCatalog();renderSubjectChoices();status("academicStatus","വിഷയം ചേർത്തു.")}catch(e){status("academicStatus","വിഷയം ചേർക്കാനായില്ല: "+e.message)}};
+$("saveAssignments").onclick=async()=>{if(!isTeacher())return;const id=$("assignStudent").value;if(!id)return;const chosen={};$("subjectChoices").querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>chosen[cb.value]=true);try{await db.ref("studentSubjects/"+id).set(chosen);studentSubjects[id]=chosen;renderMarksSubjects();status("academicStatus","ഈ വിദ്യാർത്ഥിയുടെ വിഷയങ്ങൾ Save ചെയ്തു.")}catch(e){status("academicStatus","വിഷയങ്ങൾ Save ചെയ്യാനായില്ല: "+e.message)}};
+$("saveMarks").onclick=async()=>{if(!isTeacher())return;const id=$("marksStudent").value,subjectId=$("subjectForMarks").value,exam=$("examName").value.trim(),date=$("examDate").value,got=Number($("marksObtained").value),max=Number($("maxMarks").value);if(!id||!subjectId||!exam||!date||$("marksObtained").value===""||!Number.isFinite(got)||!Number.isFinite(max)||max<=0||got<0||got>max){status("academicStatus","വിദ്യാർത്ഥി, വിഷയം, പരീക്ഷ, തീയതി, ശരിയായ മാർക്ക് എന്നിവ നൽകുക. ലഭിച്ച മാർക്ക് ആകെ മാർക്കിനെക്കാൾ കൂടരുത്.");return}const examKey=date+"_"+exam.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,30);const record={examName:exam,date,subjectId,subjectName:subjectCatalog[subjectId],marksObtained:got,maxMarks:max,percentage:Math.round(got/max*10000)/100,updatedAt:firebase.database.ServerValue.TIMESTAMP};try{await db.ref("examResults/"+id+"/"+examKey+"/"+subjectId).set(record);status("academicStatus","മാർക്ക് വിജയകരമായി Save ചെയ്തു.")}catch(e){status("academicStatus","മാർക്ക് Save ചെയ്യാനായില്ല: "+e.message)}};
 loadPublic();
 </script>
 </body>
