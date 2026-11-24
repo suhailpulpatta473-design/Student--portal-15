@@ -248,7 +248,32 @@ async function loadAttendanceForDate(){if(!isTeacher())return;const date=$("atte
 $("loadAttendance").onclick=loadAttendanceForDate;
 $("attendanceList").onchange=e=>{if(e.target.matches("[data-attendance-id]"))updateAttendanceSummary()};
 $("saveAttendance").onclick=async()=>{if(!isTeacher())return;const date=$("attendanceDate").value;if(!date){status("attendanceStatus","തീയതി തിരഞ്ഞെടുക്കുക.");return}const data={};attendanceRows().forEach(x=>{data[x.dataset.attendanceId]={status:x.value,updatedAt:firebase.database.ServerValue.TIMESTAMP}});try{await db.ref("attendance/"+date).update(data);status("attendanceStatus","ഹാജർ വിജയകരമായി Save ചെയ്തു.")}catch(e){status("attendanceStatus","Save പരാജയപ്പെട്ടു: "+e.message)}};
-$("monthlyReport").onclick=async()=>{if(!isTeacher())return;const month=$("reportMonth").value;if(!month){status("attendanceStatus","മാസം തിരഞ്ഞെടുക്കുക.");return}try{const snap=await db.ref("attendance").orderByKey().startAt(month+"-01").endAt(month+"-31").once("value");const days=snap.val()||{};const totals={};Object.entries(publicStudents).forEach(([id,st])=>totals[id]={name:st.name||id,present:0,absent:0,leave:0});Object.values(days).forEach(day=>Object.entries(day||{}).forEach(([id,r])=>{if(totals[id]&&totals[id][r.status]!==undefined)totals[id][r.status]++}));const box=$("monthlyResult");box.replaceChildren();const title=document.createElement("b");title.textContent=month+" — Monthly Attendance";box.append(title);Object.values(totals).forEach(t=>{const line=document.createElement("div");line.textContent=`${t.name}: Present ${t.present}, Absent ${t.absent}, Leave ${t.leave}`;box.append(line)});box.classList.remove("hidden");status("attendanceStatus","")}catch(e){status("attendanceStatus","Report ലഭിച്ചില്ല: "+e.message)}};
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[ch]))}
+function printMonthlyAttendance(month, rows){
+ const monthName=new Date(month+"-01T00:00:00").toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+ const body=rows.map(r=>`<tr><td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.name)}</td><td>${r.present}</td><td>${r.absent}</td><td>${r.leave}</td><td>${r.days}</td><td>${r.percent}%</td></tr>`).join("");
+ const w=window.open("","_blank");if(!w){status("attendanceStatus","PDF തയ്യാറാക്കാൻ Popup അനുവദിക്കുക.");return}
+ w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Monthly Attendance ${escapeHtml(month)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#172033}h2{text-align:center}p{text-align:center;color:#475569}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #cbd5e1;padding:9px;text-align:center}th{background:#eaf1f8}td:nth-child(2){text-align:left}@media print{button{display:none}}</style></head><body><h2>Student Portal 15</h2><p>Monthly Attendance Report — ${escapeHtml(monthName)}</p><table><thead><tr><th>Student ID</th><th>Student Name</th><th>Present</th><th>Absent</th><th>Leave</th><th>Recorded Days</th><th>Attendance %</th></tr></thead><tbody>${body}</tbody></table><p>Only dates with saved attendance records are counted.</p><button onclick="window.print()">Print / Save as PDF</button></body></html>`);
+ w.document.close();
+}
+$("monthlyReport").onclick=async()=>{
+ if(!isTeacher())return;const month=$("reportMonth").value;if(!month){status("attendanceStatus","മാസം തിരഞ്ഞെടുക്കുക.");return}
+ try{
+  const snap=await db.ref("attendance").orderByKey().startAt(month+"-01").endAt(month+"-31").once("value");const days=snap.val()||{};const totals={};
+  Object.entries(publicStudents).forEach(([id,st])=>totals[id]={id,name:st.name||id,present:0,absent:0,leave:0,days:0,percent:0});
+  Object.values(days).forEach(day=>Object.entries(day||{}).forEach(([id,r])=>{if(totals[id]&&["present","absent","leave"].includes(r.status)){totals[id][r.status]++;totals[id].days++}}));
+  const rows=Object.values(totals).sort((a,b)=>a.name.localeCompare(b.name)).map(t=>({...t,percent:t.days?Math.round(t.present/t.days*100):0}));
+  const box=$("monthlyResult");box.replaceChildren();
+  const title=document.createElement("b");title.textContent=month+" — എല്ലാ വിദ്യാർത്ഥികളുടെയും മാസ ഹാജർ റിപ്പോർട്ട്";box.append(title);
+  const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem";
+  const headers=["Student ID","വിദ്യാർത്ഥി","Present","Absent","Leave","Recorded Days","ഹാജർ %"];
+  const thead=document.createElement("thead"),hr=document.createElement("tr");headers.forEach(h=>{const th=document.createElement("th");th.textContent=h;th.style.cssText="border:1px solid #cbd5e1;padding:7px;background:#eaf1f8";hr.append(th)});thead.append(hr);table.append(thead);
+  const tbody=document.createElement("tbody");rows.forEach(r=>{const tr=document.createElement("tr");[r.id,r.name,r.present,r.absent,r.leave,r.days,r.days?r.percent+"%":"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);td.style.cssText="border:1px solid #cbd5e1;padding:7px;text-align:center";tr.append(td)});tbody.append(tr)});table.append(tbody);box.append(table);
+  const note=document.createElement("p");note.textContent="കുറിപ്പ്: Save ചെയ്തിട്ടുള്ള ഹാജർ ദിവസങ്ങൾ മാത്രമാണ് കണക്കിൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നത്.";note.className="muted";box.append(note);
+  const printBtn=document.createElement("button");printBtn.className="btn";printBtn.textContent="PDF / Print റിപ്പോർട്ട്";printBtn.onclick=()=>printMonthlyAttendance(month,rows);box.append(printBtn);
+  box.classList.remove("hidden");status("attendanceStatus","");
+ }catch(e){status("attendanceStatus","Report ലഭിച്ചില്ല: "+e.message)}
+};
 
 loadPublic();
 </script>
