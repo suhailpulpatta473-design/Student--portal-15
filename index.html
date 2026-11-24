@@ -1,47 +1,218 @@
 <!DOCTYPE html>
 <html lang="ml">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Student Portal 15</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Noto Sans Malayalam',sans-serif;background:#f1f5f9;color:#172033}header{background:linear-gradient(135deg,#155eaa,#2876c7);color:#fff;text-align:center;padding:26px 14px}header h1{margin:0;font-size:1.55rem}header p{margin:7px 0 0;opacity:.9}.wrap{max-width:1100px;margin:auto;padding:20px}.panel,.card{background:white;border-radius:16px;padding:18px;box-shadow:0 4px 14px #0f172a12;margin-bottom:16px}.login{max-width:440px;margin:30px auto}.field{margin:12px 0}.field label{display:block;font-weight:600;margin-bottom:6px}.field input,.field select,.field textarea,input.search{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fff}.field textarea{min-height:75px}.btn{border:0;border-radius:10px;padding:11px 15px;font:inherit;font-weight:600;background:#1769b2;color:#fff;cursor:pointer}.btn.secondary{background:#64748b}.btn.danger{background:#b42323}.btnrow{display:flex;gap:8px;flex-wrap:wrap}.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.student{cursor:pointer;text-align:center}.student img{width:100px;height:100px;border-radius:50%;object-fit:cover;background:#e5edff}.avatar{width:100px;height:100px;border-radius:50%;display:grid;place-items:center;background:#e5edff;color:#2169b3;font-size:40px;margin:auto}.muted{color:#64748b}.hidden{display:none!important}.notice{padding:12px;border-radius:10px;background:#fff7ed;color:#9a3412;margin:12px 0}.status{margin:10px 0;color:#b42323}.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:15px;z-index:5}.modalbox{background:white;border-radius:16px;width:min(700px,100%);max-height:92vh;overflow:auto;padding:18px}.modalbox h2{margin-top:0}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}@media(max-width:600px){.two{grid-template-columns:1fr}.wrap{padding:12px}.panel{padding:14px}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Noto Sans Malayalam',sans-serif;background:#f1f5f9;color:#172033}
+header{background:linear-gradient(135deg,#155eaa,#2876c7);color:#fff;text-align:center;padding:24px 14px}header h1{margin:0;font-size:1.55rem}header p{margin:7px 0 0;opacity:.9}
+.wrap{max-width:1100px;margin:auto;padding:18px}.panel,.card{background:#fff;border-radius:16px;padding:17px;box-shadow:0 4px 14px #0f172a12;margin-bottom:15px}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.student{cursor:pointer;text-align:center}.student img,.avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;background:#e5edff}.avatar{display:grid;place-items:center;color:#2169b3;font-size:40px;margin:auto}
+.muted{color:#64748b}.hidden{display:none!important}.field{margin:11px 0}.field label{display:block;font-weight:600;margin-bottom:5px}
+input,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}textarea{min-height:72px}
+.btn{border:0;border-radius:10px;padding:11px 15px;font:inherit;font-weight:600;background:#1769b2;color:white;cursor:pointer}.secondary{background:#64748b}.danger{background:#b42323}.btnrow,.actions{display:flex;gap:8px;flex-wrap:wrap}.status{margin:10px 0;color:#b42323;overflow-wrap:anywhere}
+.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:12px;z-index:5}.modalbox{background:white;border-radius:16px;width:min(720px,100%);max-height:94vh;overflow:auto;padding:18px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.details{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail{background:#f8fafc;border-radius:10px;padding:10px;overflow-wrap:anywhere}.detail b{display:block;font-size:.9rem;color:#475569;margin-bottom:3px}
+.notice{background:#fff7ed;color:#9a3412;border-radius:10px;padding:12px;margin:12px 0}
+@media(max-width:620px){.two,.details{grid-template-columns:1fr}.wrap{padding:12px}}
 </style>
 </head>
 <body>
 <header><h1>🎓 Student Portal 15</h1><p>Student Profile & Academic Progress</p></header>
 <main class="wrap">
-<section id="loginPanel" class="panel login"><h2>🔐 Teacher Login</h2><p class="muted">അധ്യാപക Email, Password ഉപയോഗിച്ച് പ്രവേശിക്കുക.</p>
-<div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" placeholder="Teacher email" required></div>
-<div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password" required></div>
-<button id="loginBtn" class="btn">Login</button><div id="loginStatus" class="status"></div></section>
-<section id="appPanel" class="hidden">
-<div class="panel toprow"><div><h2 style="margin:0">വിദ്യാർത്ഥികൾ</h2><span id="count" class="muted"></span></div><div class="btnrow"><button id="addBtn" class="btn">+ Student ചേർക്കുക</button><button id="logoutBtn" class="btn secondary">Logout</button></div></div>
-<div class="panel"><input id="search" class="search" placeholder="വിദ്യാർത്ഥിയുടെ പേര് തിരയുക..."></div><div id="studentGrid" class="grid"></div><div id="appStatus" class="status"></div>
-</section></main>
-<div id="modal" class="modal hidden"><div class="modalbox"><div class="toprow"><h2 id="modalTitle">Student Details</h2><button id="closeModal" class="btn secondary">Close</button></div><form id="studentForm"><div class="two">
-<div class="field"><label>Student ID</label><input id="sid" required></div><div class="field"><label>Name</label><input id="sname" required></div>
-<div class="field"><label>Photo URL (optional)</label><input id="photo" type="url" placeholder="https://..."></div><div class="field"><label>Batch</label><input id="batch"></div>
-<div class="field"><label>School Class</label><input id="schoolClass"></div><div class="field"><label>Date of Birth</label><input id="dob" type="date"></div>
-<div class="field"><label>Attendance (Present)</label><input id="present" type="number" min="0"></div><div class="field"><label>Attendance (Absent)</label><input id="absent" type="number" min="0"></div><div class="field"><label>Total Days</label><input id="totalDays" type="number" min="0"></div>
-<div class="field"><label>Exam Marks</label><input id="marks" placeholder="e.g. 85/100"></div><div class="field"><label>Study Progress</label><input id="progress" placeholder="e.g. Good / 80%"></div></div>
-<div class="field"><label>Achievements</label><textarea id="achievements"></textarea></div><div class="field"><label>Teacher Remark</label><textarea id="remark"></textarea></div><div class="actions"><button class="btn" type="submit">Save Student</button><button id="deleteBtn" type="button" class="btn danger hidden">Delete Student</button></div><div id="formStatus" class="status"></div></form></div></div>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <section class="panel toprow">
+    <div><h2 style="margin:0">വിദ്യാർത്ഥികൾ</h2><span id="count" class="muted">Loading...</span></div>
+    <div class="btnrow"><button id="teacherBtn" class="btn">Teacher Login</button><button id="logoutBtn" class="btn secondary hidden">Logout</button><button id="addBtn" class="btn hidden">+ Student ചേർക്കുക</button></div>
+  </section>
+  <section class="panel"><input id="search" placeholder="വിദ്യാർത്ഥിയുടെ പേര് തിരയുക..."></section>
+  <div id="notice" class="notice hidden"></div>
+  <section id="studentGrid" class="grid"></section>
+  <div id="appStatus" class="status"></div>
+</main>
+
+<div id="loginModal" class="modal hidden"><div class="modalbox" style="max-width:440px">
+  <div class="toprow"><h2>🔐 Teacher Login</h2><button class="btn secondary" id="closeLogin">Close</button></div>
+  <p class="muted">അധ്യാപക Email, Password ഉപയോഗിച്ച് പ്രവേശിക്കുക.</p>
+  <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username"></div>
+  <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password"></div>
+  <button id="loginBtn" class="btn">Login</button><div id="loginStatus" class="status"></div>
+</div></div>
+
+<div id="profileModal" class="modal hidden"><div class="modalbox">
+  <div class="toprow"><h2 id="profileTitle">Student Profile</h2><div class="btnrow"><button id="editBtn" class="btn hidden">Edit</button><button id="closeProfile" class="btn secondary">Close</button></div></div>
+  <div id="profileContent" class="details"></div>
+</div></div>
+
+<div id="editModal" class="modal hidden"><div class="modalbox">
+  <div class="toprow"><h2 id="editTitle">Student Details</h2><button id="closeEdit" class="btn secondary">Close</button></div>
+  <form id="studentForm">
+    <div class="two">
+      <div class="field"><label>Student ID</label><input id="sid" required></div>
+      <div class="field"><label>Name</label><input id="sname" required></div>
+      <div class="field"><label>Photo URL</label><input id="photo" type="url" placeholder="https://..."></div>
+      <div class="field"><label>Batch</label><input id="batch"></div>
+      <div class="field"><label>School Class</label><input id="schoolClass"></div>
+      <div class="field"><label>Exam Marks</label><input id="marks" placeholder="e.g. 85/100"></div>
+      <div class="field"><label>Attendance (Present)</label><input id="present" type="number" min="0"></div>
+      <div class="field"><label>Attendance (Absent)</label><input id="absent" type="number" min="0"></div>
+      <div class="field"><label>Total Days</label><input id="totalDays" type="number" min="0"></div>
+      <div class="field"><label>Study Progress</label><input id="progress" placeholder="e.g. Good / 80%"></div>
+    </div>
+    <div class="field"><label>Achievements</label><textarea id="achievements"></textarea></div>
+    <h3>🔒 Teacher-only details</h3>
+    <div class="two">
+      <div class="field"><label>Date of Birth</label><input id="dob" type="date"></div>
+      <div class="field"><label>Guardian Details</label><input id="guardian"></div>
+      <div class="field"><label>Phone Number</label><input id="phone" type="tel"></div>
+      <div class="field"><label>Blood Group</label><input id="bloodGroup"></div>
+    </div>
+    <div class="field"><label>Address</label><textarea id="address"></textarea></div>
+    <div class="field"><label>Private Teacher Remark</label><textarea id="remark"></textarea></div>
+    <div class="actions"><button class="btn" type="submit">Save Student</button><button id="deleteBtn" type="button" class="btn danger hidden">Delete Student</button></div>
+    <div id="formStatus" class="status"></div>
+  </form>
+</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig={apiKey:"AIzaSyAjYDcSXRJJ8Ik0MFxo3xst83-c_iJx9jo",authDomain:"student-portal-15.firebaseapp.com",databaseURL:"https://student-portal-15-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"student-portal-15",storageBucket:"student-portal-15.firebasestorage.app",messagingSenderId:"575545424549",appId:"1:575545424549:web:d9d38d882c0e078e112b4c",measurementId:"G-5B68SWW1NC"};
-firebase.initializeApp(firebaseConfig);const auth=firebase.auth(),db=firebase.database();
-const $=id=>document.getElementById(id);let students={},editingKey=null;
-function setStatus(id,msg){$(id).textContent=msg}
-function showApp(user){$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');setStatus('appStatus','');loadStudents()}
-function showLogin(){$('loginPanel').classList.remove('hidden');$('appPanel').classList.add('hidden')}
-auth.onAuthStateChanged(user=>{if(user)showApp(user);else showLogin()});
-$('loginBtn').onclick=async()=>{setStatus('loginStatus','');try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value)}catch(e){setStatus('loginStatus','Login failed: '+e.message)}};
-$('logoutBtn').onclick=()=>auth.signOut();
-function loadStudents(){db.ref('students').once('value').then(s=>{students=s.val()||{};render()}).catch(e=>setStatus('appStatus','Data load failed: '+e.message))}
-function render(){const grid=$('studentGrid');grid.replaceChildren();const q=$('search').value.trim().toLowerCase();const entries=Object.entries(students).filter(([k,s])=>(s.name||k).toLowerCase().includes(q));$('count').textContent=entries.length+' students';entries.forEach(([key,s])=>{const card=document.createElement('article');card.className='card student';card.onclick=()=>openEditor(key,s);if(s.photo||s.photoURL){const im=document.createElement('img');im.src=s.photo||s.photoURL;im.alt='Student photo';im.onerror=()=>{im.replaceWith(makeAvatar())};card.append(im)}else card.append(makeAvatar());const h=document.createElement('h3');h.textContent=s.name||key;const p=document.createElement('p');p.className='muted';p.textContent=(s.batch||'')+(s.schoolClass?' • '+s.schoolClass:'');card.append(h,p);grid.append(card)});}
-function makeAvatar(){const a=document.createElement('div');a.className='avatar';a.textContent='👤';return a}
-$('search').oninput=render;
-function openEditor(key,s={}){editingKey=key;$('modalTitle').textContent=key?'Edit Student':'Add Student';$('deleteBtn').classList.toggle('hidden',!key);$('sid').value=key||'';$('sid').disabled=!!key;$('sname').value=s.name||'';$('photo').value=s.photo||s.photoURL||'';$('batch').value=s.batch||'';$('schoolClass').value=s.schoolClass||s.class||'';$('dob').value=s.dateOfBirth||'';$('present').value=s.attendance?.present??'';$('absent').value=s.attendance?.absent??'';$('totalDays').value=s.attendance?.totalDays??'';$('marks').value=typeof s.examMarks==='object'?JSON.stringify(s.examMarks):s.examMarks||'';$('progress').value=s.studyProgress||s.progress||'';$('achievements').value=s.achievements||s.achievement||'';$('remark').value=s.teacherRemark||'';setStatus('formStatus','');$('modal').classList.remove('hidden')}
-$('addBtn').onclick=()=>openEditor(null,{});$('closeModal').onclick=()=>$('modal').classList.add('hidden');$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.add('hidden')};
-$('studentForm').onsubmit=async e=>{e.preventDefault();const key=$('sid').value.trim();if(!key){setStatus('formStatus','Student ID ആവശ്യമാണ്.');return}const record={name:$('sname').value.trim(),photo:$('photo').value.trim(),batch:$('batch').value.trim(),schoolClass:$('schoolClass').value.trim(),dateOfBirth:$('dob').value,attendance:{present:Number($('present').value||0),absent:Number($('absent').value||0),totalDays:Number($('totalDays').value||0)},examMarks:$('marks').value.trim(),studyProgress:$('progress').value.trim(),achievements:$('achievements').value.trim(),teacherRemark:$('remark').value.trim()};try{await db.ref('students/'+key).set(record);students[key]=record;render();$('modal').classList.add('hidden')}catch(err){setStatus('formStatus','Save failed: '+err.message)}};
-$('deleteBtn').onclick=async()=>{if(!editingKey||!confirm('ഈ വിദ്യാർത്ഥിയെ Delete ചെയ്യണോ?'))return;try{await db.ref('students/'+editingKey).remove();delete students[editingKey];render();$('modal').classList.add('hidden')}catch(e){setStatus('formStatus','Delete failed: '+e.message)}};
-</script></body></html>
+const firebaseConfig={
+ apiKey:"AIzaSyAjYDcSXRJJ8Ik0MFxo3xst83-c_iJx9jo",
+ authDomain:"student-portal-15.firebaseapp.com",
+ databaseURL:"https://student-portal-15-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId:"student-portal-15",
+ storageBucket:"student-portal-15.firebasestorage.app",
+ messagingSenderId:"575545424549",
+ appId:"1:575545424549:web:d9d38d882c0e078e112b4c",
+ measurementId:"G-5B68SWW1NC"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.database();
+const TEACHER_EMAIL="suhailpulpatta473@gmail.com";
+const $=id=>document.getElementById(id);
+let publicStudents={}, privateStudents={}, currentUser=null, activeKey=null, isEditingNew=false;
+
+function status(id,msg){$(id).textContent=msg}
+function safe(v){return v===undefined||v===null?"":String(v)}
+function showNotice(msg){$("notice").textContent=msg;$("notice").classList.remove("hidden")}
+function hideNotice(){$("notice").classList.add("hidden")}
+function isTeacher(){return !!currentUser && currentUser.email===TEACHER_EMAIL}
+function refreshTeacherUI(){
+ $("teacherBtn").classList.toggle("hidden",!!currentUser);
+ $("logoutBtn").classList.toggle("hidden",!currentUser);
+ $("addBtn").classList.toggle("hidden",!isTeacher());
+}
+function loadPublic(){
+ status("appStatus",""); 
+ db.ref("publicStudents").once("value").then(s=>{
+   publicStudents=s.val()||{};
+   render();
+   if(!Object.keys(publicStudents).length) showNotice("Public student data ഇതുവരെ ചേർത്തിട്ടില്ല. Teacher, ആദ്യം പുതിയ Public–Private JSON import ചെയ്യണം.");
+   else hideNotice();
+ }).catch(e=>{status("appStatus","Student വിവരങ്ങൾ ലഭിച്ചില്ല: "+e.message);showNotice("Database access പരിശോധിക്കുക. Firebase Rules ശരിയാക്കിയിട്ടുണ്ടോ എന്ന് ഉറപ്പാക്കുക.")});
+}
+function loadPrivate(){
+ if(!isTeacher()){privateStudents={};return Promise.resolve()}
+ return db.ref("privateStudents").once("value").then(s=>{privateStudents=s.val()||{}}).catch(e=>{privateStudents={};status("appStatus","Private details load failed: "+e.message)});
+}
+function avatar(){const a=document.createElement("div");a.className="avatar";a.textContent="👤";return a}
+function render(){
+ const grid=$("studentGrid");grid.replaceChildren();
+ const q=$("search").value.trim().toLowerCase();
+ const rows=Object.entries(publicStudents).filter(([k,s])=>(safe(s.name)||k).toLowerCase().includes(q));
+ $("count").textContent=rows.length+" students";
+ rows.forEach(([key,s])=>{
+   const card=document.createElement("article");card.className="card student";card.onclick=()=>openProfile(key);
+   if(s.photo){const im=document.createElement("img");im.src=s.photo;im.alt="Student photo";im.onerror=()=>im.replaceWith(avatar());card.append(im)}else card.append(avatar());
+   const h=document.createElement("h3");h.textContent=s.name||key;
+   const p=document.createElement("p");p.className="muted";p.textContent=[s.batch,s.schoolClass].filter(Boolean).join(" • ");
+   card.append(h,p);grid.append(card);
+ });
+}
+$("search").oninput=render;
+function addDetail(container,label,value){
+ const d=document.createElement("div");d.className="detail";
+ const b=document.createElement("b");b.textContent=label;
+ const span=document.createElement("span");span.textContent=safe(value)||"—";
+ d.append(b,span);container.append(d);
+}
+function openProfile(key){
+ activeKey=key;const s=publicStudents[key]||{}, priv=isTeacher()?(privateStudents[key]||{}):{};
+ $("profileTitle").textContent=s.name||key;
+ const c=$("profileContent");c.replaceChildren();
+ addDetail(c,"Student ID",key);addDetail(c,"Batch",s.batch);addDetail(c,"School Class",s.schoolClass);
+ addDetail(c,"Exam Marks",s.examMarks);addDetail(c,"Study Progress",s.studyProgress);addDetail(c,"Achievements",s.achievements);
+ const a=s.attendance||{};addDetail(c,"Present",a.present??0);addDetail(c,"Absent",a.absent??0);addDetail(c,"Total Days",a.totalDays??0);
+ if(isTeacher()){
+   addDetail(c,"Date of Birth",priv.dateOfBirth);addDetail(c,"Guardian Details",priv.guardianDetails);
+   addDetail(c,"Phone Number",priv.phone);addDetail(c,"Address",priv.address);addDetail(c,"Blood Group",priv.bloodGroup);
+   addDetail(c,"Private Teacher Remark",priv.teacherRemark);
+ }
+ $("editBtn").classList.toggle("hidden",!isTeacher());
+ $("profileModal").classList.remove("hidden");
+}
+$("teacherBtn").onclick=()=>$("loginModal").classList.remove("hidden");
+$("closeLogin").onclick=()=>$("loginModal").classList.add("hidden");
+$("loginBtn").onclick=async()=>{
+ status("loginStatus","");
+ try{
+  const result=await auth.signInWithEmailAndPassword($("email").value.trim(),$("password").value);
+  if(result.user.email!==TEACHER_EMAIL){await auth.signOut();throw new Error("ഈ അക്കൗണ്ടിന് Teacher access അനുവദിച്ചിട്ടില്ല.")}
+  $("loginModal").classList.add("hidden");$("password").value="";
+ }catch(e){status("loginStatus","Login failed: "+e.message)}
+};
+$("logoutBtn").onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async user=>{
+ currentUser=user;
+ if(user && user.email!==TEACHER_EMAIL){await auth.signOut();return}
+ refreshTeacherUI();
+ if(isTeacher()){await loadPrivate();render()}else{privateStudents={};render()}
+});
+$("closeProfile").onclick=()=>$("profileModal").classList.add("hidden");
+$("profileModal").onclick=e=>{if(e.target===$("profileModal"))$("profileModal").classList.add("hidden")};
+$("editBtn").onclick=()=>{if(isTeacher())openEditor(activeKey,publicStudents[activeKey]||{},privateStudents[activeKey]||{})};
+$("addBtn").onclick=()=>{if(isTeacher())openEditor(null,{}, {})};
+$("closeEdit").onclick=()=>$("editModal").classList.add("hidden");
+function openEditor(key,s={},p={}){
+ if(!isTeacher())return;
+ isEditingNew=!key;activeKey=key;
+ $("editTitle").textContent=key?"Edit Student":"Add Student";
+ $("sid").value=key||"";$("sid").disabled=!!key;
+ $("sname").value=s.name||"";$("photo").value=s.photo||"";$("batch").value=s.batch||"";
+ $("schoolClass").value=s.schoolClass||"";$("marks").value=s.examMarks||"";
+ $("present").value=s.attendance?.present??0;$("absent").value=s.attendance?.absent??0;$("totalDays").value=s.attendance?.totalDays??0;
+ $("progress").value=s.studyProgress||"";$("achievements").value=s.achievements||"";
+ $("dob").value=p.dateOfBirth||"";$("guardian").value=p.guardianDetails||"";$("phone").value=p.phone||"";
+ $("address").value=p.address||"";$("bloodGroup").value=p.bloodGroup||"";$("remark").value=p.teacherRemark||"";
+ $("deleteBtn").classList.toggle("hidden",!key);status("formStatus","");
+ $("profileModal").classList.add("hidden");$("editModal").classList.remove("hidden");
+}
+$("studentForm").onsubmit=async e=>{
+ e.preventDefault();if(!isTeacher()){status("formStatus","Teacher login ആവശ്യമാണ്.");return}
+ const key=$("sid").value.trim();if(!key){status("formStatus","Student ID ആവശ്യമാണ്.");return}
+ const pub={
+  id:key,name:$("sname").value.trim(),photo:$("photo").value.trim(),batch:$("batch").value.trim(),
+  schoolClass:$("schoolClass").value.trim(),examMarks:$("marks").value.trim(),
+  attendance:{present:Number($("present").value||0),absent:Number($("absent").value||0),totalDays:Number($("totalDays").value||0)},
+  studyProgress:$("progress").value.trim(),achievements:$("achievements").value.trim()
+ };
+ const priv={dateOfBirth:$("dob").value,guardianDetails:$("guardian").value.trim(),phone:$("phone").value.trim(),
+  address:$("address").value.trim(),bloodGroup:$("bloodGroup").value.trim(),teacherRemark:$("remark").value.trim()};
+ try{
+  await db.ref().update({["publicStudents/"+key]:pub,["privateStudents/"+key]:priv});
+  publicStudents[key]=pub;privateStudents[key]=priv;render();$("editModal").classList.add("hidden");
+  if(!isEditingNew)openProfile(key);
+ }catch(err){status("formStatus","Save failed: "+err.message)}
+};
+$("deleteBtn").onclick=async()=>{
+ if(!isTeacher()||!activeKey||!confirm("ഈ വിദ്യാർത്ഥിയെ Delete ചെയ്യണോ?"))return;
+ try{const k=activeKey;await db.ref().update({["publicStudents/"+k]:null,["privateStudents/"+k]:null});delete publicStudents[k];delete privateStudents[k];render();$("editModal").classList.add("hidden")}
+ catch(e){status("formStatus","Delete failed: "+e.message)}
+};
+loadPublic();
+</script>
+</body>
+</html>
